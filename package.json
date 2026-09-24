@@ -14,7 +14,8 @@
     "build-rpm": "npx --yes electron-builder@latest --linux rpm",
     "build-deb": "npx --yes electron-builder@latest --linux deb",
     "build-rpm-deb": "npx --yes electron-builder@latest --linux rpm deb",
-    "build-all": "npx --yes electron-builder@latest --win --x64 --linux"
+    "build-all": "npx --yes electron-builder@latest --win --x64 --linux",
+    "build-mac": "npx --yes electron-builder@26.15.3 --mac dmg --arm64 --x64"
   },
   "keywords": [
     "electron",
@@ -72,6 +73,17 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Grok Desktop",
       "artifactName": "Grok-Desktop_Installer-v${version}.exe"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build-resources/icons/512x512.png",
+      "artifactName": "Grok-Desktop-v${version}-mac-${arch}.${ext}"
+    },
+    "dmg": {
+      "artifactName": "Grok-Desktop-v${version}-mac-${arch}.${ext}"
     },
     "msi": {
       "artifactName": "Grok-Desktop_Installer-v${version}.msi"

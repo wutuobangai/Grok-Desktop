@@ -1,0 +1,194 @@
+# Happy AI · Grok Desktop Mac 版云端构建 + 真机冒烟测试（手动触发）
+# - macOS：用本仓库源码打 dmg（arm64 + x64，不签名），装到一次性虚拟机里启动并截屏
+# - Windows：不自己编译，直接下载原作者 v1.2.5 官方安装包，静默装 → 启动 → 截屏
+# 只加构建目标，应用功能一行未改（见 happyai/NOTICE-说明.md）。GitHub 虚拟机用完即毁，不影响任何人的电脑。
+name: happyai-build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EB_VERSION: 26.15.3
+  UPSTREAM_TAG: v1.2.5
+
+jobs:
+  mac-build:
+    runs-on: macos-14
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: npm ci
+        timeout-minutes: 10
+        run: npm ci
+
+      - name: 打 dmg（arm64 + x64，不签名）
+        timeout-minutes: 20
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx --yes electron-builder@${EB_VERSION} --mac dmg --arm64 --x64 --publish never
+
+      - name: 列产物 + SHA-256 + 签名状态（只看不改）
+        timeout-minutes: 5
+        run: |
+          ls -la build
+          cd build
+          shasum -a 256 *.dmg | tee SHA256SUMS-mac.txt
+          for app in mac*/*.app; do
+            echo "== $app"
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist" || true
+            lipo -archs "$app/Contents/MacOS/"* || true
+            codesign -dv --verbose=2 "$app" 2>&1 || true
+            codesign --verify --deep --strict "$app" && echo "CODESIGN_VERIFY_OK" || echo "CODESIGN_VERIFY_FAIL"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: grok-desktop-mac-dmg
+          path: |
+            build/*.dmg
+            build/SHA256SUMS-mac.txt
+          if-no-files-found: error
+
+  mac-smoke:
+    needs: mac-build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            arch: arm64
+            experimental: false
+          - runner: macos-15-intel
+            arch: x64
+            experimental: true
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: ${{ matrix.experimental }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: grok-desktop-mac-dmg
+          path: dmg
+
+      - name: 挂载 dmg → 复制 .app
+        timeout-minutes: 5
+        run: |
+          uname -m; sw_vers
+          DMG=$(ls dmg/*-mac-${{ matrix.arch }}.dmg | head -1)
+          echo "dmg=$DMG"
+          hdiutil attach "$DMG" -nobrowse -mountpoint /Volumes/GrokDesktop
+          ls -la /Volumes/GrokDesktop
+          cp -R "/Volumes/GrokDesktop/Grok Desktop.app" "$RUNNER_TEMP/"
+          hdiutil detach /Volumes/GrokDesktop || true
+          codesign --verify --deep --strict "$RUNNER_TEMP/Grok Desktop.app" && echo "CODESIGN_VERIFY_OK" || echo "CODESIGN_VERIFY_FAIL"
+          # 模拟「从网上下载」后 Gatekeeper 的判定（只读评估，不改 app）
+          cp -R "$RUNNER_TEMP/Grok Desktop.app" "$RUNNER_TEMP/quarantine-copy.app"
+          xattr -w com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" "$RUNNER_TEMP/quarantine-copy.app"
+          spctl --assess --type execute -vv "$RUNNER_TEMP/quarantine-copy.app" 2>&1 || true
+
+      - name: 启动 → 等 20 秒截屏 → 再等 25 秒截屏
+        timeout-minutes: 5
+        run: |
+          open "$RUNNER_TEMP/Grok Desktop.app"
+          sleep 20
+          screencapture -x "$GITHUB_WORKSPACE/mac-${{ matrix.arch }}-20s.png"
+          sleep 25
+          screencapture -x "$GITHUB_WORKSPACE/mac-${{ matrix.arch }}-45s.png"
+          pgrep -fl "Grok Desktop" || { echo "APP_NOT_RUNNING"; exit 1; }
+          echo "APP_RUNNING_OK"
+
+      - name: 收集崩溃报告（如有）
+        if: always()
+        timeout-minutes: 2
+        run: |
+          mkdir -p crash
+          cp ~/Library/Logs/DiagnosticReports/*Grok* crash/ 2>/dev/null || true
+          ls -la crash
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac-${{ matrix.arch }}-screenshots
+          path: |
+            mac-${{ matrix.arch }}-*.png
+            crash/
+          if-no-files-found: warn
+
+  windows-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: 下载原作者官方安装包 + 便携版，并核对 GitHub 记录的 SHA-256
+        timeout-minutes: 8
+        continue-on-error: true
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $rel = Invoke-RestMethod "https://api.github.com/repos/AnRkey/Grok-Desktop/releases/tags/$env:UPSTREAM_TAG"
+          foreach ($n in @("Grok-Desktop_Installer-$env:UPSTREAM_TAG.exe", "Grok-Desktop_Portable-$env:UPSTREAM_TAG.exe")) {
+            $a = $rel.assets | Where-Object { $_.name -eq $n }
+            if (-not $a) { Write-Host "release 里没有 $n"; continue }
+            Invoke-WebRequest $a.browser_download_url -OutFile $n
+            $h = (Get-FileHash $n -Algorithm SHA256).Hash.ToLower()
+            Write-Host "$n sha256=$h  github_digest=$($a.digest)"
+            if ($a.digest -and ("sha256:$h" -ne $a.digest)) { throw "SHA-256 不一致：$n" }
+          }
+          Get-ChildItem *.exe | Format-Table Name, Length
+
+      - name: 静默安装（NSIS /S）
+        timeout-minutes: 6
+        continue-on-error: true
+        run: |
+          $setup = "Grok-Desktop_Installer-$env:UPSTREAM_TAG.exe"
+          if (-not (Test-Path $setup)) { throw "安装包没下载到" }
+          Start-Process $setup -ArgumentList "/S" -Wait
+          $cands = @(
+            (Join-Path $env:LOCALAPPDATA 'Programs'),
+            $env:ProgramFiles,
+            ${env:ProgramFiles(x86)}
+          ) | Where-Object { $_ -and (Test-Path $_) }
+          $exe = Get-ChildItem $cands -Recurse -Depth 2 -Filter 'Grok Desktop.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "没找到 Grok Desktop.exe" }
+          Write-Host "installed exe = $($exe.FullName)"
+          "$($exe.FullName)" | Out-File -Encoding utf8 installed-path.txt
+          $desk = [Environment]::GetFolderPath('Desktop')
+          Get-ChildItem $desk | Format-Table Name
+
+      - name: 启动（装好的版本；装不上就跑便携版）→ 等 30 秒截屏
+        timeout-minutes: 5
+        continue-on-error: true
+        run: |
+          if (Test-Path installed-path.txt) {
+            $exe = (Get-Content installed-path.txt -Raw).Trim(); $mode = 'installer'
+          } else {
+            $exe = (Resolve-Path "Grok-Desktop_Portable-$env:UPSTREAM_TAG.exe").Path; $mode = 'portable'
+          }
+          Write-Host "launch mode=$mode exe=$exe"
+          $p = Start-Process $exe -PassThru
+          Start-Sleep -Seconds 30
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save("$env:GITHUB_WORKSPACE\windows-$mode-30s.png")
+          Get-Process | Where-Object { $_.ProcessName -like '*Grok*' } | Format-Table Id, ProcessName, MainWindowTitle
+          if (-not (Get-Process | Where-Object { $_.ProcessName -like '*Grok*' })) { throw "APP_NOT_RUNNING" }
+          Write-Host "APP_RUNNING_OK"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-screenshots
+          path: windows-*.png
+          if-no-files-found: warn

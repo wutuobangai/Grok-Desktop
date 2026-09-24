@@ -1,3 +1,18 @@
+> ## 🍎 Grok Desktop · Mac 版（Happy AI 补打包）
+> 原作者只发了 Windows / Linux 版，我们用**原作者源码、一行功能不改**补打了 Mac 版（苹果芯片 arm64 / Intel x64 两个 dmg）。
+>
+> **⬇️ 下载**：[Releases](https://github.com/wutuobangai/Grok-Desktop/releases) 里 `Grok-Desktop-v1.2.5-mac-arm64.dmg`（M 系列芯片）或 `-mac-x64.dmg`（Intel）· Windows 请用原作者官方安装包 [AnRkey/Grok-Desktop Releases](https://github.com/AnRkey/Grok-Desktop/releases)
+>
+> Mac 版未签名，第一次打开：**系统设置 → 隐私与安全性 → 仍要打开**（详见 [happyai/NOTICE-说明.md](happyai/NOTICE-说明.md)）
+>
+> 🧑‍💻 **维护者 Happy AI · 阿浩**（抖音「跟着阿浩玩Ai」）｜要 Grok 会员：**[Grok 会员正规充值（含质保）](https://wutuobangai.top/tool.html?id=grok-recharge-1m-warranty&utm_source=github&utm_medium=readme&utm_campaign=grok-desktop-20260924)**｜官网 **[wutuobangai.top](https://wutuobangai.top/?utm_source=github&utm_medium=readme&utm_campaign=grok-desktop-20260924)**：ChatGPT Plus / Pro、Claude Pro / Max、Grok、Gemini 会员正规充值，24 小时内交付，有售后｜[AI 免费知识库](https://wutuobangai.top/knowledge.html?utm_source=github&utm_medium=readme&utm_campaign=grok-desktop-20260924)
+>
+> <img src="https://cdn.wutuobangai.com/tools/common/happyai-wecom-qr.png" width="160" alt="扫码加阿浩企业微信"> 扫码加阿浩（企业微信），装不上、登不进都可以问，送一次 AI 诊断。
+>
+> 本仓库 fork 自 [AnRkey/Grok-Desktop](https://github.com/AnRkey/Grok-Desktop)（GPL-2.0，请优先支持原作者）；我们只加了 Mac 构建配置与云端构建工作流，改动同样以 GPL-2.0 开源，改了什么见 [NOTICE-说明](happyai/NOTICE-说明.md)。
+
+---
+
 # Grok-Desktop v1.2.5
 
 ## Description
