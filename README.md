@@ -5,7 +5,7 @@
 >
 > Mac 版未签名，第一次打开：**系统设置 → 隐私与安全性 → 仍要打开**（详见 [happyai/NOTICE-说明.md](happyai/NOTICE-说明.md)）
 >
-> 🧑‍💻 **维护者 Happy AI · 阿浩**（抖音「跟着阿浩玩Ai」）｜要 Grok 会员：**[Grok 会员正规充值（含质保）](https://wutuobangai.top/tool.html?id=grok-recharge-1m-warranty&utm_source=github&utm_medium=readme&utm_campaign=grok-desktop-20260924)**｜官网 **[wutuobangai.top](https://wutuobangai.top/?utm_source=github&utm_medium=readme&utm_campaign=grok-desktop-20260924)**：ChatGPT Plus / Pro、Claude Pro / Max、Grok、Gemini 会员正规充值，24 小时内交付，有售后｜[AI 免费知识库](https://wutuobangai.top/knowledge.html?utm_source=github&utm_medium=readme&utm_campaign=grok-desktop-20260924)
+> 🧑‍💻 **维护者 Happy AI · 阿浩**（抖音「跟着阿浩玩Ai」）｜要 Grok 会员：**[Grok 会员正规充值（含质保）](https://wutuobangai.top/tool.html?id=grok-recharge-1m-nowarranty&utm_source=github&utm_medium=readme&utm_campaign=grok-desktop-20260924)**｜官网 **[wutuobangai.top](https://wutuobangai.top/?utm_source=github&utm_medium=readme&utm_campaign=grok-desktop-20260924)**：ChatGPT Plus / Pro、Claude Pro / Max、Grok、Gemini 会员正规充值，24 小时内交付，有售后｜[AI 免费知识库](https://wutuobangai.top/knowledge.html?utm_source=github&utm_medium=readme&utm_campaign=grok-desktop-20260924)
 >
 > <img src="https://cdn.wutuobangai.com/tools/common/happyai-wecom-qr.png" width="160" alt="扫码加阿浩企业微信"> 扫码加阿浩（企业微信），装不上、登不进都可以问，送一次 AI 诊断。
 >
